@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+BASENAME=$(basename "$0")
+if [[ "$BASENAME" != "agent" ]]; then
+    AGENT="$BASENAME"
+else
+    AGENT=$1
+    shift
+fi
+
+if [ -z "$AGENT" ]; then
+    echo "Usage: agent {claude|codex|gemini|kiro|opencode} [args...]"
+    exit 1
+fi
+
+case "$AGENT" in
+    claude|codex|gemini|kiro|opencode) ;;
+    *)
+        echo "Unknown agent: $AGENT"
+        echo "Supported agents: claude, codex, gemini, kiro, opencode"
+        exit 1
+        ;;
+esac
+
+IMAGE="agent-cli:$AGENT"
+CONTEXT="$PWD"
+
+docker build \
+    --target "$AGENT" \
+    --build-arg UID=$(id -u) \
+    --build-arg GID=$(id -g) \
+    --build-arg USERNAME=$USER \
+    -t "$IMAGE" "$CONTEXT"
+
+mkdir -p "$HOME/.npm" "$HOME/.cache/uv" "$HOME/.cache/go-build" "$HOME/.go/pkg/mod"
+
+MOUNTS=(
+    -v "$HOME/.$AGENT:/home/$USER/.$AGENT"
+    -v "$HOME/.npm:/home/$USER/.npm"
+    -v "$HOME/.cache/uv:/home/$USER/.cache/uv"
+    -v "$HOME/.cache/go-build:/home/$USER/.cache/go-build"
+    -v "$HOME/.go/pkg/mod:/home/$USER/.go/pkg/mod"
+    -v "$PWD:/home/$USER/workspace"
+)
+
+if [ "$AGENT" = "kiro" ]; then
+    mkdir -p "$HOME/.aws" "$HOME/.local/share/kiro-cli"
+    MOUNTS+=(-v "$HOME/.aws:/home/$USER/.aws")
+    MOUNTS+=(-v "$HOME/.local/share/kiro-cli:/home/$USER/.local/share/kiro-cli")
+fi
+
+if [ "$AGENT" = "opencode" ]; then
+    mkdir -p "$HOME/.local/share/opencode"
+    MOUNTS+=(-v "$HOME/.local/share/opencode:/home/$USER/.local/share/opencode")
+fi
+
+ENV_VARS=(
+    ANTHROPIC_API_KEY
+    GEMINI_API_KEY
+    KIRO_API_KEY
+    OPENAI_API_KEY
+    OPENROUTER_API_KEY
+    TERM
+    COLORTERM
+)
+
+ENV_ARGS=(-e BROWSER=echo)
+for NAME in "${ENV_VARS[@]}"; do
+    if [ -n "${!NAME+x}" ]; then
+        ENV_ARGS+=(-e "$NAME")
+    fi
+done
+
+docker run --rm -ti --net host \
+    "${MOUNTS[@]}" \
+    "${ENV_ARGS[@]}" \
+    "$IMAGE" "$AGENT" "$@"
