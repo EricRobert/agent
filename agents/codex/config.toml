@@ -4,9 +4,10 @@ approval_policy = "never"
 sandbox_mode = "danger-full-access"
 model_reasoning_effort = "medium"
 approvals_reviewer = "user"
+model_instructions_file = "AGENTS.md"
 
 [projects."/home/eric/workspace"]
-trust_level = "untrusted"
+trust_level = "trusted"
 
 [notice]
 fast_default_opt_out = true

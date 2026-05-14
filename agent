@@ -4,12 +4,27 @@ BASENAME=$(basename "$0")
 if [[ "$BASENAME" != "agent" ]]; then
     AGENT="$BASENAME"
 else
-    AGENT=$1
+    AGENT="${1:-}"
+    if [[ $# -gt 0 ]]; then
+        shift
+    fi
+fi
+
+UPDATE_VERSION=
+if [[ "${1:-}" == "--update" ]]; then
+    shift
+    UPDATE_VERSION="${1:-}"
+    if [[ -z "$UPDATE_VERSION" ]]; then
+        echo "--update requires a version"
+        exit 1
+    fi
     shift
 fi
 
+AGENT_ARGS=("$@")
+
 if [ -z "$AGENT" ]; then
-    echo "Usage: agent {claude|codex|gemini|kiro|opencode} [args...]"
+    echo "Usage: agent {claude|codex|gemini|kiro|opencode} [--update VERSION] [args...]"
     exit 1
 fi
 
@@ -25,17 +40,22 @@ esac
 IMAGE="agent-cli:$AGENT"
 CONTEXT="$PWD"
 
-docker build \
-    --target "$AGENT" \
-    --build-arg UID=$(id -u) \
-    --build-arg GID=$(id -g) \
-    --build-arg USERNAME=$USER \
-    -t "$IMAGE" "$CONTEXT"
+if [[ -n "$UPDATE_VERSION" ]]; then
+    VERSION_ARG="$(echo "$AGENT" | tr '[:lower:]' '[:upper:]')_VERSION"
+
+    docker build \
+        --pull \
+        --target "$AGENT" \
+        --build-arg UID=$(id -u) \
+        --build-arg GID=$(id -g) \
+        --build-arg USERNAME=$USER \
+        --build-arg "$VERSION_ARG=$UPDATE_VERSION" \
+        -t "$IMAGE" "$CONTEXT"
+fi
 
 mkdir -p "$HOME/.npm" "$HOME/.cache/uv" "$HOME/.cache/go-build" "$HOME/.go/pkg/mod"
 
 MOUNTS=(
-    -v "$HOME/.$AGENT:/home/$USER/.$AGENT"
     -v "$HOME/.npm:/home/$USER/.npm"
     -v "$HOME/.cache/uv:/home/$USER/.cache/uv"
     -v "$HOME/.cache/go-build:/home/$USER/.cache/go-build"
@@ -43,16 +63,26 @@ MOUNTS=(
     -v "$PWD:/home/$USER/workspace"
 )
 
-if [ "$AGENT" = "kiro" ]; then
-    mkdir -p "$HOME/.aws" "$HOME/.local/share/kiro-cli"
-    MOUNTS+=(-v "$HOME/.aws:/home/$USER/.aws")
-    MOUNTS+=(-v "$HOME/.local/share/kiro-cli:/home/$USER/.local/share/kiro-cli")
-fi
+ROOT=".$AGENT"
 
-if [ "$AGENT" = "opencode" ]; then
-    mkdir -p "$HOME/.local/share/opencode"
-    MOUNTS+=(-v "$HOME/.local/share/opencode:/home/$USER/.local/share/opencode")
-fi
+case "$AGENT" in
+    kiro)
+        mkdir -p "$HOME/.aws" "$HOME/.local/share/kiro-cli"
+        MOUNTS+=(-v "$HOME/.aws:/home/$USER/.aws")
+        MOUNTS+=(-v "$HOME/.local/share/kiro-cli:/home/$USER/.local/share/kiro-cli")
+        ;;
+    opencode)
+        mkdir -p "$HOME/.local/share/opencode" "$HOME/.config/opencode"
+        MOUNTS+=(-v "$HOME/.local/share/opencode:/home/$USER/.local/share/opencode")
+        ROOT=.config/opencode
+        ;;
+esac
+
+MOUNTS+=(-v "$CONTEXT/agents/$AGENT:/home/$USER/$ROOT")
+
+for skill in "$CONTEXT"/skills/*/; do
+    [ -d "$skill" ] && MOUNTS+=(-v "$skill:/home/$USER/$ROOT/skills/$(basename "$skill")")
+done
 
 ENV_VARS=(
     ANTHROPIC_API_KEY
@@ -74,4 +104,4 @@ done
 docker run --rm -ti --net host \
     "${MOUNTS[@]}" \
     "${ENV_ARGS[@]}" \
-    "$IMAGE" "$AGENT" "$@"
+    "$IMAGE" "$AGENT" "${AGENT_ARGS[@]}"

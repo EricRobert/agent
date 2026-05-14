@@ -45,16 +45,21 @@ RUN mkdir -p ~/.local/npm ~/.cache ~/.go && npm config set prefix '~/.local/npm'
 
 FROM base AS claude
 ENV CLAUDE_CONFIG_DIR=/home/$USERNAME/.claude
-RUN curl -fsSL https://claude.ai/install.sh | bash
+ARG CLAUDE_VERSION=latest
+RUN echo "$CLAUDE_VERSION" >/dev/null && curl -fsSL https://claude.ai/install.sh | bash
 
 FROM base AS codex
-RUN npm install -g @openai/codex
+ARG CODEX_VERSION=latest
+RUN npm install -g @openai/codex@$CODEX_VERSION
 
 FROM base AS gemini
-RUN npm install -g @google/gemini-cli
+ARG GEMINI_VERSION=latest
+RUN npm install -g @google/gemini-cli@$GEMINI_VERSION
 
 FROM base AS kiro
-RUN curl -fsSL https://cli.kiro.dev/install | bash && ln -s $(which kiro-cli) ~/.local/bin/kiro
+ARG KIRO_VERSION=latest
+RUN echo "$KIRO_VERSION" >/dev/null && curl -fsSL https://cli.kiro.dev/install | bash && ln -s $(which kiro-cli) ~/.local/bin/kiro
 
 FROM base AS opencode
-RUN npm install -g opencode-ai
+ARG OPENCODE_VERSION=latest
+RUN npm install -g opencode-ai@$OPENCODE_VERSION

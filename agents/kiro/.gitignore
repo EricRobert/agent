@@ -1,2 +1,6 @@
 *
 !.gitignore
+!steering/
+!steering/AGENTS.md
+!settings/
+!settings/cli.json

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Go"
+  short_description: "Rules and recommendations for writing Go code."
+  default_prompt: "Use $write-go for rules and recommendations when writing or reviewing Go code."

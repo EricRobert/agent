@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Go CLI"
+  short_description: "Instuctions for creating a Go CLI interface."
+  default_prompt: "Use $write-go-cli when adding or reviewing Go CLI flags or commands."

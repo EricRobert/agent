@@ -1,2 +1,5 @@
 *
 !.gitignore
+!CLAUDE.md
+!settings.json
+!policy-limits.json

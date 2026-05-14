@@ -1,0 +1,4 @@
+interface:
+  display_name: "Align"
+  short_description: "Align on domain understanding and preserve reasoning continuity."
+  default_prompt: "Use $align to build shared domain understanding and maintain DOMAIN.md."

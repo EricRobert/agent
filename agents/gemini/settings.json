@@ -1,0 +1,13 @@
+{
+  "general": {
+    "defaultApprovalMode": "auto_edit"
+  },
+  "context": {
+    "fileName": "AGENTS.md"
+  },
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  }
+}

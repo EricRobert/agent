@@ -1,2 +1,6 @@
 *
 !.gitignore
+!AGENTS.md
+!settings.json
+!projects.json
+!trustedFolders.json
